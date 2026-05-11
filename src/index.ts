@@ -1,8 +1,8 @@
 import rawConfig from "../config.json";
 import { fetchDisruptions, findStops } from "./rmv";
 import { fetchWeather } from "./weather";
-import { generateSummary, buildFallbackSummary } from "./llm";
-import { sendTelegramMessage } from "./telegram";
+import { generateSummary, buildFallbackSummary, textToSpeech } from "./llm";
+import { sendTelegramMessage, sendTelegramVoice } from "./telegram";
 import type { Disruption, WeatherSummary, Config } from "./types";
 
 const config = rawConfig as unknown as Config;
@@ -86,8 +86,15 @@ async function runReport(env: ReturnType<typeof loadEnv>): Promise<void> {
     summary = buildFallbackSummary(disruptions, weather);
   }
 
-  await sendTelegramMessage(summary, env.botToken, env.chatId);
-  console.log("  Report sent to Telegram.");
+  try {
+    const audio = await textToSpeech(summary, env.openaiKey);
+    await sendTelegramVoice(audio, env.botToken, env.chatId);
+    console.log("  Voice report sent to Telegram.");
+  } catch (err) {
+    console.error("  TTS failed, falling back to text:", err);
+    await sendTelegramMessage(summary, env.botToken, env.chatId);
+    console.log("  Text report sent to Telegram.");
+  }
 }
 
 async function handleFindStops(apiKey: string): Promise<void> {

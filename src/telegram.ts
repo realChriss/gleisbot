@@ -25,6 +25,32 @@ function formatMessage(summary: string): string {
   return `<b>Pendler-Report ${today}</b>\n\n${escapeHtml(summary)}`;
 }
 
+export async function sendTelegramVoice(
+  audio: ArrayBuffer,
+  botToken: string,
+  chatId: string
+): Promise<void> {
+  const url = `https://api.telegram.org/bot${botToken}/sendVoice`;
+
+  const form = new FormData();
+  form.append("chat_id", chatId);
+  form.append("voice", new Blob([audio], { type: "audio/ogg" }), "report.ogg");
+
+  const res = await fetch(url, {
+    method: "POST",
+    body: form,
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { error_code?: number; description?: string };
+    throw new TelegramApiError(
+      `Telegram sendVoice failed: ${err.description ?? res.statusText}`,
+      err.error_code
+    );
+  }
+}
+
 export async function sendTelegramMessage(
   text: string,
   botToken: string,

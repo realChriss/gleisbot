@@ -13,30 +13,40 @@ class RmvApiError extends Error {
 }
 
 function toRmvDate(date: Date): string {
-  return date.toISOString().slice(0, 10).replace(/-/g, "");
+  return date.toISOString().slice(0, 10); // YYYY-MM-DD as expected by the API
 }
 
 function parseRmvDateTime(date: string, time: string): string {
-  // date: YYYYMMDD, time: HHMMSS
-  return `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T${time.slice(0, 2)}:${time.slice(2, 4)}:${time.slice(4, 6)}`;
+  // API returns date as YYYY-MM-DD and time as HH:MM:SS
+  return `${date}T${time}`;
 }
 
 function lineMatchesSegment(himLine: string, segment: RouteSegment): boolean {
   const normalized = himLine.toLowerCase().replace(/\s/g, "");
-  const target = segment.line.toLowerCase().replace(/\s/g, "");
-  return normalized.includes(target) || normalized.endsWith(target);
+  return segment.lines.some((line) => {
+    const target = line.toLowerCase().replace(/\s/g, "");
+    return normalized.includes(target) || normalized.endsWith(target);
+  });
+}
+
+function matchedConfigLine(himLine: string, segment: RouteSegment): string {
+  const normalized = himLine.toLowerCase().replace(/\s/g, "");
+  return segment.lines.find((line) => {
+    const target = line.toLowerCase().replace(/\s/g, "");
+    return normalized.includes(target) || normalized.endsWith(target);
+  }) ?? segment.lines[0];
 }
 
 function parseHimMessage(msg: RmvHimMessage, matchedLine: string): Disruption {
   return {
-    himId: msg.himId,
+    himId: msg.id,
     line: matchedLine,
     headline: msg.head,
     description: msg.lead ?? msg.text,
     validFrom: parseRmvDateTime(msg.sDate, msg.sTime),
     validTo: parseRmvDateTime(msg.eDate, msg.eTime),
-    priority: msg.prio,
-    category: msg.cat,
+    priority: msg.priority,
+    category: msg.category,
   };
 }
 
@@ -76,7 +86,7 @@ async function queryHimSearch(
   const data = await res.json() as {
     errorCode?: string;
     errorText?: string;
-    HimL?: Array<{ Him: RmvHimMessage }>;
+    Message?: Array<RmvHimMessage>;
   };
 
   if (process.env.DEBUG_RMV === "1") {
@@ -87,7 +97,7 @@ async function queryHimSearch(
     throw new RmvApiError(`RMV API error: ${data.errorCode} — ${data.errorText}`);
   }
 
-  return (data.HimL ?? []).map((entry) => entry.Him);
+  return data.Message ?? [];
 }
 
 async function queryDepartureBoard(
@@ -152,12 +162,12 @@ export async function fetchDisruptions(
 
   if (himMessages.length > 0) {
     for (const msg of himMessages) {
-      const affectedLines = msg.affectedProducts?.map((p) => p.line) ?? [];
+      const affectedLines = msg.affectedProduct?.map((p) => p.line) ?? [];
 
       for (const segment of segments) {
-        const matchedLine = affectedLines.find((l) => lineMatchesSegment(l, segment));
-        if (matchedLine) {
-          disruptions.push(parseHimMessage(msg, segment.line));
+        const matchedHimLine = affectedLines.find((l) => lineMatchesSegment(l, segment));
+        if (matchedHimLine) {
+          disruptions.push(parseHimMessage(msg, matchedConfigLine(matchedHimLine, segment)));
           break;
         }
       }
@@ -168,16 +178,16 @@ export async function fetchDisruptions(
     const seen = new Set<string>();
 
     for (const segment of segments) {
-      const key = `${segment.fromStopId}-${segment.line}`;
+      const key = `${segment.fromStopId}-${segment.lines.join(",")}`;
       if (seen.has(key)) continue;
       seen.add(key);
 
       try {
-        const msgs = await queryDepartureBoard(segment.fromStopId, segment.line, date, apiKey);
+        const msgs = await queryDepartureBoard(segment.fromStopId, segment.lines.join(","), date, apiKey);
         for (const text of msgs) {
           disruptions.push({
-            himId: `fallback-${segment.line}-${text.slice(0, 20)}`,
-            line: segment.line,
+            himId: `fallback-${segment.lines[0]}-${text.slice(0, 20)}`,
+            line: segment.lines[0],
             headline: text.split(":")[0] ?? text,
             description: text,
             validFrom: today.toISOString(),

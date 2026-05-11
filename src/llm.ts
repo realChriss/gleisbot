@@ -1,13 +1,12 @@
 import OpenAI from "openai";
 import type { ReportData, Disruption, WeatherSummary } from "./types";
 
-const SYSTEM_PROMPT = `Du bist ein präziser Pendler-Assistent für Frankfurt und Offenbach. \
-Erstelle eine kurze, strukturierte Zusammenfassung für den Morgen-Pendler. \
-Antworte auf Deutsch. Maximal 300 Wörter. \
-Schreibe in flüssigen Absätzen ohne Aufzählungszeichen. \
-Struktur: 1. Wetterlage für den Morgen (1–2 Sätze). \
-2. Störungen und Hinweise zu den überwachten Linien — nur erwähnen wenn vorhanden, sonst weglassen. \
-3. Kurzes Fazit oder Empfehlung (1 Satz).`;
+const SYSTEM_PROMPT = `Du bist ein freundlicher persönlicher Assistent, der jeden Morgen kurz und direkt über den Pendelweg informiert. \
+Sprich den Nutzer wie einen guten Bekannten an — locker, warm, ohne Förmlichkeit. \
+Antworte auf Deutsch, maximal 100 Wörter, keine Aufzählungszeichen. \
+Erwähne das Wetter nur wenn es relevant ist (Regen, Kälte, Sturm). \
+Störungen nur wenn vorhanden — sonst kein Satz darüber. \
+Schließe mit einem kurzen, natürlichen Satz ab.`;
 
 export async function generateSummary(
   data: ReportData,
@@ -40,7 +39,7 @@ export async function generateSummary(
             }))
           : "Keine bekannten Störungen auf den überwachten Linien.",
       ueberwachte_linien: data.segments.map(
-        (s) => `${s.line} (${s.fromName} → ${s.toName})`
+        (s) => `${s.lines.join("/")} (${s.fromName} → ${s.toName})`
       ),
     },
     null,
@@ -49,7 +48,7 @@ export async function generateSummary(
 
   const response = await client.chat.completions.create({
     model: "gpt-4o",
-    max_tokens: 400,
+    max_tokens: 150,
     temperature: 0.3,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
@@ -58,6 +57,17 @@ export async function generateSummary(
   });
 
   return response.choices[0]?.message.content ?? buildFallbackSummary(data.disruptions, data.weather);
+}
+
+export async function textToSpeech(text: string, apiKey: string): Promise<ArrayBuffer> {
+  const client = new OpenAI({ apiKey });
+  const response = await client.audio.speech.create({
+    model: "tts-1",
+    voice: "nova",
+    input: text,
+    response_format: "opus",
+  });
+  return response.arrayBuffer();
 }
 
 export function buildFallbackSummary(

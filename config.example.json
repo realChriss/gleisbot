@@ -2,7 +2,7 @@
   "route": [
     {
       "type": "ubahn",
-      "line": "U1",
+      "lines": ["U1"],
       "fromStopId": "STOP_ID_HERE",
       "toStopId": "STOP_ID_HERE",
       "fromName": "Start Station",
@@ -10,7 +10,7 @@
     },
     {
       "type": "bus",
-      "line": "100",
+      "lines": ["100", "101"],
       "fromStopId": "STOP_ID_HERE",
       "toStopId": "STOP_ID_HERE",
       "fromName": "Transfer Station",

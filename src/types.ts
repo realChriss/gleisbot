@@ -1,6 +1,6 @@
 export interface RouteSegment {
   type: "ubahn" | "sbahn" | "bus" | "tram";
-  line: string;
+  lines: string[];
   fromStopId: string;
   toStopId: string;
   fromName: string;
@@ -52,21 +52,21 @@ export interface ReportData {
 }
 
 export interface RmvHimMessage {
-  himId: string;
+  id: string;
   act: boolean;
   head: string;
   text: string;
   lead?: string;
-  prio: number;
-  cat?: string;
+  priority: number;
+  category?: string;
   sDate: string;
   sTime: string;
   eDate: string;
   eTime: string;
-  affectedProducts?: Array<{
+  affectedProduct?: Array<{
     name: string;
     line: string;
-    catCode: string;
+    catOut: string;
   }>;
 }
 
