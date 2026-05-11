@@ -1,0 +1,17 @@
+{
+  "name": "daily-report",
+  "version": "1.0.0",
+  "module": "src/index.ts",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "now": "bun run src/index.ts --now",
+    "find-stops": "bun run src/index.ts --find-stops"
+  },
+  "dependencies": {
+    "openai": "^4.77.0"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}
