@@ -1,0 +1,28 @@
+{
+  "route": [
+    {
+      "type": "ubahn",
+      "line": "U1",
+      "fromStopId": "STOP_ID_HERE",
+      "toStopId": "STOP_ID_HERE",
+      "fromName": "Start Station",
+      "toName": "End Station"
+    },
+    {
+      "type": "bus",
+      "line": "100",
+      "fromStopId": "STOP_ID_HERE",
+      "toStopId": "STOP_ID_HERE",
+      "fromName": "Transfer Station",
+      "toName": "Destination Station"
+    }
+  ],
+  "weather": {
+    "lat": 0.0,
+    "lon": 0.0
+  },
+  "targetHour": 6,
+  "targetTimezone": "Europe/Berlin",
+  "language": "de",
+  "disruptionLookaheadDays": 7
+}
