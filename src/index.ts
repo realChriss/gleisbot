@@ -167,6 +167,11 @@ async function main(): Promise<void> {
   });
 }
 
+process.on("SIGINT", () => {
+  console.log("\nShutting down.");
+  process.exit(0);
+});
+
 main().catch((err) => {
   console.error("Fatal:", err.message);
   process.exit(1);
