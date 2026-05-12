@@ -4,6 +4,7 @@ import { fetchWeather } from "./weather";
 import { generateSummary, buildFallbackSummary, textToSpeech } from "./llm";
 import { sendTelegramMessage, sendTelegramVoice } from "./telegram";
 import type { Disruption, WeatherSummary, Config } from "./types";
+import { Cron } from "croner";
 
 const config = rawConfig as unknown as Config;
 
@@ -33,14 +34,6 @@ function loadEnv(): {
   };
 }
 
-function getBerlinHour(): number {
-  const formatter = new Intl.DateTimeFormat("de-DE", {
-    timeZone: config.targetTimezone,
-    hour: "numeric",
-    hour12: false,
-  });
-  return Number(formatter.format(new Date()));
-}
 
 async function runReport(env: ReturnType<typeof loadEnv>): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
@@ -143,28 +136,20 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Scheduler mode: fires at 4 AM and 5 AM UTC (covers 6 AM Berlin in both CET and CEST)
-  // Inside the handler we check the Berlin local hour to avoid running twice.
-  let lastRunDate = "";
-
   console.log(`Scheduler started. Will run at ${config.targetHour}:00 ${config.targetTimezone} on weekdays.`);
   console.log("(Tip: run with --now to trigger immediately, --find-stops to look up stop IDs)\n");
 
-  Bun.cron("0 4,5 * * 1-5", async () => {
-    const berlinHour = getBerlinHour();
-    const today = new Date().toISOString().slice(0, 10);
-
-    if (berlinHour !== config.targetHour) return;
-    if (lastRunDate === today) return;
-
-    lastRunDate = today;
-
-    try {
-      await runReport(env);
-    } catch (err) {
-      console.error("Report run failed:", err);
+  new Cron(
+    `0 ${config.targetHour} * * 1-5`,
+    { timezone: config.targetTimezone },
+    async () => {
+      try {
+        await runReport(env);
+      } catch (err) {
+        console.error("Report run failed:", err);
+      }
     }
-  });
+  );
 }
 
 process.on("SIGINT", () => {

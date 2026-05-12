@@ -9,6 +9,7 @@
     "find-stops": "bun run src/index.ts --find-stops"
   },
   "dependencies": {
+    "croner": "^10.0.1",
     "openai": "^4.77.0"
   },
   "devDependencies": {
