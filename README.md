@@ -1,25 +1,25 @@
-# gleisbot
+# 🚆 gleisbot
 
-A personal Telegram bot that sends a daily voice message every morning before your commute. It checks for transit disruptions on your configured route and combines them with the current weather into a short, natural-sounding summary.
+A Telegram bot that sends you a daily voice briefing on transit disruptions and weather.
 
-## How it works
+## 🎙️ How it works
 
 Each morning, gleisbot:
 
-1. Fetches real-time disruptions from the [RMV](https://www.rmv.de) (Rhein-Main-Verkehrsverbund) API for your configured lines
-2. Fetches current weather data via [Bright Sky](https://brightsky.dev) (DWD)
-3. Generates a concise, personal summary using GPT-4o
-4. Converts it to speech using OpenAI TTS
-5. Sends it as a voice message to your Telegram chat
+1. 🚨 Fetches real-time disruptions from the [RMV](https://www.rmv.de) (Rhein-Main-Verkehrsverbund) API for your configured lines
+2. 🌤️ Fetches current weather data via [Bright Sky](https://brightsky.dev) (DWD)
+3. 🤖 Generates a concise, personal summary
+4. 🔊 Converts it to speech
+5. 📨 Sends it as a voice message to your Telegram chat
 
-## Requirements
+## 📋 Requirements
 
 - [Bun](https://bun.sh)
 - RMV API key
 - OpenAI API key
 - Telegram bot token
 
-## Setup
+## ⚙️ Setup
 
 1. Clone the repo and install dependencies:
    ```bash
@@ -37,14 +37,14 @@ Each morning, gleisbot:
    bun run src/index.ts --find-stops
    ```
 
-## Usage
+## 🚀 Usage
 
 Run once immediately (useful for testing):
 ```bash
 bun run src/index.ts --now
 ```
 
-Run in scheduler mode (fires at 6:00 AM Europe/Berlin on weekdays):
+Run in scheduler mode:
 ```bash
 bun run src/index.ts
 ```
