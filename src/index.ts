@@ -85,7 +85,7 @@ async function runReport(env: ReturnType<typeof loadEnv>): Promise<void> {
       env.openaiKey,
       cryptoPrices
     );
-    console.log("  LLM summary generated.");
+    console.log("  LLM summary generated.\n" + summary);
   } catch (err) {
     console.error("  OpenAI failed, using fallback summary:", err);
     summary = buildFallbackSummary(disruptions, weather, cryptoPrices);

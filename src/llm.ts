@@ -1,14 +1,14 @@
 import OpenAI from "openai";
 import type { ReportData, Disruption, WeatherSummary, CryptoPrice } from "./types";
 
-const SYSTEM_PROMPT = `Du bist ein hochentwickelter KI-Assistent — präzise, gewandt und mit einem Hauch trockenen Humors. \
-Sprich den Nutzer stets förmlich mit "Sir" an. \
-Berichte jeden Morgen knapp über den Pendelweg: sachlich, eloquent - nie geschwätzig. \
-Antworte auf Deutsch, keine Aufzählungszeichen. \
-Erwähne das Wetter nur wenn es relevant ist (Regen, Kälte, Sturm). \
-Störungen nur wenn vorhanden — sonst kein Satz darüber. \
-Kryptokurse nur kurz erwähnen wenn vorhanden. \
-Schließe mit einer knappen, souveränen Bemerkung ab.`;
+const SYSTEM_PROMPT = `Erstelle eine kurze Morgeninfo auf Deutsch, die vorgelesen wird. Schreibe natürliche, gesprochene Sätze — kein Aufzählen von Rohdaten, keine Einheiten wie "km/h" oder "mm". Keine Anrede, kein Abschluss, kein Fülltext.
+
+STRIKTE REGEL:
+Linien: Nenne ausschließlich Linien, die in "ueberwachte_linien" aufgeführt sind. Auch wenn eine Störungsbeschreibung andere Linien oder Verkehrsmittel erwähnt, darfst du diese nicht nennen. Filtere sie stillschweigend heraus.
+Wetter: Nur erwähnen wenn relevant (Regen, Kälte, Sturm). Bei normalem Wetter kein Wort.
+Störungen: Nur wenn vorhanden, ein kurzer Satz pro Linie. Nur die betroffene überwachte Linie nennen.
+Krypto: Nur kurz erwähnen wenn vorhanden. Zahlen nie umformatieren — keine Tausenderpunkte, keine Kommas.`;
+
 
 export async function generateSummary(
   data: ReportData,
@@ -42,7 +42,7 @@ export async function generateSummary(
             }))
           : "Keine bekannten Störungen auf den überwachten Linien.",
       ...(cryptoPrices.length > 0 && {
-        krypto: cryptoPrices.map((c) => ({ name: c.name, kurs: `${c.usdPrice.toLocaleString("de-DE")} Dollar` })),
+        krypto: cryptoPrices.map((c) => ({ name: c.name, kurs: `${Math.round(c.usdPrice)} Dollar` })),
       }),
       ueberwachte_linien: data.segments.map(
         (s) => `${s.lines.join("/")} (${s.fromName} → ${s.toName})`
@@ -94,7 +94,7 @@ export function buildFallbackSummary(
 
   const cryptoLine =
     cryptoPrices.length > 0
-      ? `Krypto: ${cryptoPrices.map((c) => `${c.name} ${c.usdPrice.toLocaleString("de-DE")} Dollar`).join(", ")}`
+      ? `Krypto: ${cryptoPrices.map((c) => `${c.name} ${Math.round(c.usdPrice)} Dollar`).join(", ")}`
       : "";
 
   return [weatherLine, alertLines, "Störungen:", disruptionLines, cryptoLine]
