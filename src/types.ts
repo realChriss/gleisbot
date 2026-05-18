@@ -14,6 +14,12 @@ export interface Config {
   targetTimezone: string;
   language: string;
   disruptionLookaheadDays: number;
+  coins?: string[];
+}
+
+export interface CryptoPrice {
+  symbol: string;
+  usdPrice: number;
 }
 
 export interface Disruption {

@@ -24,5 +24,6 @@
   "targetHour": 6,
   "targetTimezone": "Europe/Berlin",
   "language": "de",
-  "disruptionLookaheadDays": 7
+  "disruptionLookaheadDays": 7,
+  "coins": ["BTC", "ETH"]
 }
