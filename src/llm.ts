@@ -1,16 +1,18 @@
 import OpenAI from "openai";
-import type { ReportData, Disruption, WeatherSummary } from "./types";
+import type { ReportData, Disruption, WeatherSummary, CryptoPrice } from "./types";
 
 const SYSTEM_PROMPT = `Du bist ein freundlicher persönlicher Assistent, der jeden Morgen kurz und direkt über den Pendelweg informiert. \
 Sprich den Nutzer wie einen guten Bekannten an — locker, warm, ohne Förmlichkeit. \
 Antworte auf Deutsch, maximal 100 Wörter, keine Aufzählungszeichen. \
 Erwähne das Wetter nur wenn es relevant ist (Regen, Kälte, Sturm). \
 Störungen nur wenn vorhanden — sonst kein Satz darüber. \
+Erwähne Kryptokurse nur kurz wenn vorhanden. \
 Schließe mit einem kurzen, natürlichen Satz ab.`;
 
 export async function generateSummary(
   data: ReportData,
-  apiKey: string
+  apiKey: string,
+  cryptoPrices: CryptoPrice[] = []
 ): Promise<string> {
   const client = new OpenAI({ apiKey });
 
@@ -38,6 +40,9 @@ export async function generateSummary(
               prioritaet: d.priority,
             }))
           : "Keine bekannten Störungen auf den überwachten Linien.",
+      ...(cryptoPrices.length > 0 && {
+        krypto: cryptoPrices.map((c) => ({ symbol: c.symbol, kurs_usd: c.usdPrice })),
+      }),
       ueberwachte_linien: data.segments.map(
         (s) => `${s.lines.join("/")} (${s.fromName} → ${s.toName})`
       ),
@@ -56,7 +61,7 @@ export async function generateSummary(
     ],
   });
 
-  return response.choices[0]?.message.content ?? buildFallbackSummary(data.disruptions, data.weather);
+  return response.choices[0]?.message.content ?? buildFallbackSummary(data.disruptions, data.weather, cryptoPrices);
 }
 
 export async function textToSpeech(text: string, apiKey: string): Promise<ArrayBuffer> {
@@ -72,7 +77,8 @@ export async function textToSpeech(text: string, apiKey: string): Promise<ArrayB
 
 export function buildFallbackSummary(
   disruptions: Disruption[],
-  weather: WeatherSummary
+  weather: WeatherSummary,
+  cryptoPrices: CryptoPrice[] = []
 ): string {
   const weatherLine = `Wetter: ${weather.currentTemp}°C, ${weather.condition}, Wind ${weather.windSpeed} km/h, Niederschlag ${weather.precipitation} mm.`;
 
@@ -86,7 +92,12 @@ export function buildFallbackSummary(
       ? `Wetterwarnungen: ${weather.alerts.map((a) => a.headline).join(", ")}`
       : "";
 
-  return [weatherLine, alertLines, "Störungen:", disruptionLines]
+  const cryptoLine =
+    cryptoPrices.length > 0
+      ? `Krypto: ${cryptoPrices.map((c) => `${c.symbol} $${c.usdPrice.toLocaleString("en-US")}`).join(", ")}`
+      : "";
+
+  return [weatherLine, alertLines, "Störungen:", disruptionLines, cryptoLine]
     .filter(Boolean)
     .join("\n\n");
 }

@@ -3,7 +3,8 @@ import { fetchDisruptions, findStops } from "./rmv";
 import { fetchWeather } from "./weather";
 import { generateSummary, buildFallbackSummary, textToSpeech } from "./llm";
 import { sendTelegramMessage, sendTelegramVoice } from "./telegram";
-import type { Disruption, WeatherSummary, Config } from "./types";
+import type { Disruption, WeatherSummary, Config, CryptoPrice } from "./types";
+import { fetchCryptoPrices } from "./crypto";
 import { Cron } from "croner";
 
 const config = rawConfig as unknown as Config;
@@ -61,6 +62,16 @@ async function runReport(env: ReturnType<typeof loadEnv>): Promise<void> {
     console.error("  Weather fetch failed:", err);
   }
 
+  let cryptoPrices: CryptoPrice[] = [];
+  if (config.coins && config.coins.length > 0) {
+    try {
+      cryptoPrices = await fetchCryptoPrices(config.coins);
+      console.log(`  Crypto prices: ${cryptoPrices.map((c) => `${c.symbol}=$${c.usdPrice}`).join(", ")}`);
+    } catch (err) {
+      console.error("  Crypto fetch failed:", err);
+    }
+  }
+
   let summary: string;
   try {
     summary = await generateSummary(
@@ -71,12 +82,13 @@ async function runReport(env: ReturnType<typeof loadEnv>): Promise<void> {
         language: config.language,
         segments: config.route,
       },
-      env.openaiKey
+      env.openaiKey,
+      cryptoPrices
     );
     console.log("  LLM summary generated.");
   } catch (err) {
     console.error("  OpenAI failed, using fallback summary:", err);
-    summary = buildFallbackSummary(disruptions, weather);
+    summary = buildFallbackSummary(disruptions, weather, cryptoPrices);
   }
 
   try {
