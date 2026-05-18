@@ -1,13 +1,14 @@
 import OpenAI from "openai";
 import type { ReportData, Disruption, WeatherSummary, CryptoPrice } from "./types";
 
-const SYSTEM_PROMPT = `Du bist ein freundlicher persönlicher Assistent, der jeden Morgen kurz und direkt über den Pendelweg informiert. \
-Sprich den Nutzer wie einen guten Bekannten an — locker, warm, ohne Förmlichkeit. \
-Antworte auf Deutsch, maximal 100 Wörter, keine Aufzählungszeichen. \
+const SYSTEM_PROMPT = `Du bist ein hochentwickelter KI-Assistent — präzise, gewandt und mit einem Hauch trockenen Humors. \
+Sprich den Nutzer stets förmlich mit "Sir" an. \
+Berichte jeden Morgen knapp über den Pendelweg: sachlich, eloquent - nie geschwätzig. \
+Antworte auf Deutsch, keine Aufzählungszeichen. \
 Erwähne das Wetter nur wenn es relevant ist (Regen, Kälte, Sturm). \
 Störungen nur wenn vorhanden — sonst kein Satz darüber. \
-Erwähne Kryptokurse nur kurz wenn vorhanden. \
-Schließe mit einem kurzen, natürlichen Satz ab.`;
+Kryptokurse nur kurz erwähnen wenn vorhanden. \
+Schließe mit einer knappen, souveränen Bemerkung ab.`;
 
 export async function generateSummary(
   data: ReportData,
@@ -41,7 +42,7 @@ export async function generateSummary(
             }))
           : "Keine bekannten Störungen auf den überwachten Linien.",
       ...(cryptoPrices.length > 0 && {
-        krypto: cryptoPrices.map((c) => ({ symbol: c.symbol, kurs_usd: c.usdPrice })),
+        krypto: cryptoPrices.map((c) => ({ name: c.name, kurs: `${c.usdPrice.toLocaleString("de-DE")} Dollar` })),
       }),
       ueberwachte_linien: data.segments.map(
         (s) => `${s.lines.join("/")} (${s.fromName} → ${s.toName})`
@@ -52,16 +53,15 @@ export async function generateSummary(
   );
 
   const response = await client.chat.completions.create({
-    model: "gpt-4o",
-    max_tokens: 150,
-    temperature: 0.3,
+    model: "gpt-5.4-mini",
+    max_completion_tokens: 150,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: userContent },
     ],
   });
 
-  return response.choices[0]?.message.content ?? buildFallbackSummary(data.disruptions, data.weather, cryptoPrices);
+  return response.choices[0]?.message.content || buildFallbackSummary(data.disruptions, data.weather, cryptoPrices);
 }
 
 export async function textToSpeech(text: string, apiKey: string): Promise<ArrayBuffer> {
@@ -94,7 +94,7 @@ export function buildFallbackSummary(
 
   const cryptoLine =
     cryptoPrices.length > 0
-      ? `Krypto: ${cryptoPrices.map((c) => `${c.symbol} $${c.usdPrice.toLocaleString("en-US")}`).join(", ")}`
+      ? `Krypto: ${cryptoPrices.map((c) => `${c.name} ${c.usdPrice.toLocaleString("de-DE")} Dollar`).join(", ")}`
       : "";
 
   return [weatherLine, alertLines, "Störungen:", disruptionLines, cryptoLine]

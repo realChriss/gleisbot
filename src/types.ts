@@ -19,6 +19,7 @@ export interface Config {
 
 export interface CryptoPrice {
   symbol: string;
+  name: string;
   usdPrice: number;
 }
 
