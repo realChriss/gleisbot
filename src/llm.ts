@@ -1,13 +1,24 @@
 import OpenAI from "openai";
 import type { ReportData, Disruption, WeatherSummary, CryptoPrice } from "./types";
 
-const SYSTEM_PROMPT = `Erstelle eine kurze Morgeninfo auf Deutsch, die vorgelesen wird. Schreibe natürliche, gesprochene Sätze — kein Aufzählen von Rohdaten, keine Einheiten wie "km/h" oder "mm". Keine Anrede, kein Abschluss, kein Fülltext.
+const SYSTEM_PROMPT = `Du erstellst eine tägliche Morgeninfo auf Deutsch, die per Text-to-Speech vorgelesen wird. Schreibe ausschließlich natürliche, gesprochene Sätze. Keine Anrede, kein Abschluss, keine Aufzählungszeichen, keine Sonderzeichen.
 
-STRIKTE REGEL:
-Linien: Nenne ausschließlich Linien, die in "ueberwachte_linien" aufgeführt sind. Auch wenn eine Störungsbeschreibung andere Linien oder Verkehrsmittel erwähnt, darfst du diese nicht nennen. Filtere sie stillschweigend heraus.
-Wetter: Nur erwähnen wenn relevant (Regen, Kälte, Sturm). Bei normalem Wetter kein Wort.
-Störungen: Nur wenn vorhanden, ein kurzer Satz pro Linie. Nur die betroffene überwachte Linie nennen.
-Krypto: Nur kurz erwähnen wenn vorhanden. Zahlen nie umformatieren — keine Tausenderpunkte, keine Kommas.`;
+PFLICHTSTRUKTUR — alle vier Blöcke müssen in dieser Reihenfolge erscheinen, sofern die Daten vorhanden sind:
+
+1. WETTER (immer angeben):
+   Nenne Temperatur und Wetterzustand immer. Bei Wetterwarnungen, Regen oder Sturm ergänzen.
+   Schreibe "Grad" statt "°C". Keine Rohdaten wie "km/h" oder "mm".
+
+2. ÖPNV-STATUS (immer angeben):
+   Wenn keine Störungen vorhanden sind: Sage ausdrücklich, dass alle überwachten Linien planmäßig fahren.
+   Wenn Störungen vorhanden sind: Ein kurzer Satz pro betroffener Linie aus "ueberwachte_linien".
+   STRIKT: Nenne ausschließlich Linien aus "ueberwachte_linien". Andere Linien oder Verkehrsmittel, die in Störungsbeschreibungen erwähnt werden, komplett ignorieren.
+
+3. KRYPTO:
+   Nenne jeden Kurs mit Name und Betrag. Zahlen als Ziffern ohne Tausenderpunkte oder Kommas schreiben (z.B. "23000 Dollar", nicht "23.000").
+
+Kein Satz darf mitten im Gedanken enden.`;
+
 
 
 export async function generateSummary(
@@ -54,7 +65,7 @@ export async function generateSummary(
 
   const response = await client.chat.completions.create({
     model: "gpt-5.4-mini",
-    max_completion_tokens: 150,
+    max_completion_tokens: 250,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: userContent },
