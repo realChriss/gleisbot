@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { ReportData, Disruption, WeatherSummary, CryptoPrice } from "./types";
+import { numberToGermanWords } from "./numbers";
 
 const SYSTEM_PROMPT = `Du erstellst eine tägliche Morgeninfo auf Deutsch, die per Text-to-Speech vorgelesen wird. Schreibe ausschließlich natürliche, gesprochene Sätze. Keine Anrede, kein Abschluss, keine Aufzählungszeichen, keine Sonderzeichen.
 
@@ -15,7 +16,7 @@ PFLICHTSTRUKTUR — alle vier Blöcke müssen in dieser Reihenfolge erscheinen, 
    STRIKT: Nenne ausschließlich Linien aus "ueberwachte_linien". Andere Linien oder Verkehrsmittel, die in Störungsbeschreibungen erwähnt werden, komplett ignorieren.
 
 3. KRYPTO:
-   Nenne jeden Kurs mit Name und Betrag. Zahlen als Ziffern ohne Tausenderpunkte oder Kommas schreiben (z.B. "23000 Dollar", nicht "23.000").
+   Nenne ALLE Kurse aus dem "krypto"-Array, jeden einzeln mit Name und Betrag. Keinen Coin auslassen, nicht zusammenfassen. Übernimm den Wert von "kurs" wortwörtlich (er ist bereits als deutsches Zahlwort ausgeschrieben). Wandle ihn nicht zurück in Ziffern um.
 
 Kein Satz darf mitten im Gedanken enden.`;
 
@@ -53,7 +54,10 @@ export async function generateSummary(
             }))
           : "Keine bekannten Störungen auf den überwachten Linien.",
       ...(cryptoPrices.length > 0 && {
-        krypto: cryptoPrices.map((c) => ({ name: c.name, kurs: `${Math.round(c.usdPrice)} Dollar` })),
+        krypto: cryptoPrices.map((c) => ({
+          name: c.name,
+          kurs: `${numberToGermanWords(Math.round(c.usdPrice))} Dollar`,
+        })),
       }),
       ueberwachte_linien: data.segments.map(
         (s) => `${s.lines.join("/")} (${s.fromName} → ${s.toName})`
@@ -65,7 +69,7 @@ export async function generateSummary(
 
   const response = await client.chat.completions.create({
     model: "gpt-5.4-mini",
-    max_completion_tokens: 250,
+    max_completion_tokens: 500,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: userContent },
@@ -105,7 +109,7 @@ export function buildFallbackSummary(
 
   const cryptoLine =
     cryptoPrices.length > 0
-      ? `Krypto: ${cryptoPrices.map((c) => `${c.name} ${Math.round(c.usdPrice)} Dollar`).join(", ")}`
+      ? `Krypto: ${cryptoPrices.map((c) => `${c.name} ${numberToGermanWords(Math.round(c.usdPrice))} Dollar`).join(", ")}`
       : "";
 
   return [weatherLine, alertLines, "Störungen:", disruptionLines, cryptoLine]
