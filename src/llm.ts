@@ -68,7 +68,7 @@ export async function generateSummary(
   );
 
   const response = await client.chat.completions.create({
-    model: "gpt-5.4-mini",
+    model: "gpt-4o",
     max_completion_tokens: 500,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
